@@ -1,0 +1,170 @@
+$(function () {
+  var customerId = "";
+  var appSessionToken = "";
+  var initAndShow = "1";
+  var showInWebview = "0";
+
+  var hostname = "https://" + window.location.host;
+  var endpointUrl = hostname + "/morfeus/v1/channels";
+
+  var desktop = {
+   chatWindowHeight: '100%',
+   chatWindowWidth: '100%',
+   chatWindowRight: '0px',
+   chatWindowBottom: '0px',
+   webviewSize: 'full',
+   minHeight: '100%',
+   paddingTop: '0px',
+   minWidth: '100%',
+   borderRadius: '10px 10px 0px 0px',
+   boxShadow: '0px 9.44px 33.43px 0px rgb(149, 149, 149, 0.25)',
+ };
+ var chatButtonStyle = {
+   height: '100%',
+   width: '100%',
+   minWidth: '100%',
+   maxWidth: '100%',
+   bottom: '0px',
+   right: '0px',
+ }
+
+ var queryParams = {};
+ if (window.location.href.split('?')[1]) {
+   try {
+     var queryString = window.location.href.split('?')[1];
+     var queryValues = queryString.split('&');
+     queryValues.forEach(function (value) {
+       var result = value.split('=');
+       if (result) {
+         queryParams[result[0]] = result[1];
+       }
+     });
+     if (queryParams.initParams) {
+       queryParams.initParams = JSON.parse(atob(queryParams.initParams));
+     }
+   } catch (err) {
+     console.log(err);
+   }
+ }
+ var hostedDomain = '';
+ if(queryParams.hostedDomain) {
+  hostedDomain = queryParams.hostedDomain;
+  }
+ var apiKey;
+ try {
+   if (window.location.pathname.indexOf('apikey') > -1) {
+     var allPaths = window.location.pathname.split('/');
+     if (allPaths.length > 0 && allPaths[2]) {
+       apiKey = allPaths[2];
+     }
+   }
+ } catch (err) {
+   console.log(err);
+ }
+
+  var botId;
+  var apiKey;
+  var baseSdkPath;
+
+    if (new String(hostname).valueOf() === "https://tiaone.tatacapital.com" || new String(hostname).valueOf() === "https://tiatwo.tatacapital.com") {
+          botId = "78w68404688449";
+          apiKey = "1234567";
+          baseSdkPath = hostname + '/morfeuswebsdk/libs/websdk/';
+        } else if (new String(hostname).valueOf() === "https://router.triniti.ai") {
+          botId = "147w93580043549";
+          apiKey = "n2ctbkq8df";
+          baseSdkPath = hostname + '/apikey/' + apiKey + '/morfeuswebsdk/libs/websdk/';
+        } else {
+          botId = '3w47425596318';
+          apiKey = "6f573b75-2240-4673-99be-8ecc82fb5b51";
+          baseSdkPath = hostname + '/morfeuswebsdk/libs/websdk/';
+        }
+
+  var initParam = {
+    startOverConfig: {
+      clearChatmessage: true,
+    },
+    postLoginConfig: {},
+    sAPIKey: "WHS6QH61fQScitky",
+    chatButtonStyle: chatButtonStyle,
+    customerId: customerId,
+    desktop: desktop,
+    initAndShow: initAndShow,
+    showInWebview: showInWebview,
+    endpointUrl: endpointUrl,
+    botId: botId,
+    domain: hostname,
+    baseSdkPath: baseSdkPath,
+    hostedDomain: hostedDomain,
+    botName: "tc",
+    apiKey: apiKey,
+    xAPIKey: apiKey,
+    dualMode: "0",
+    debugMode: "0",
+    timeout: 1000 * 60 * 9.5,
+    idleTimeout: 1000 * 60 * 9.5,
+    enableSlimScroll: false,
+    popularQueryConfig: { enabled: true },
+    quickTags: {
+      enable: true,
+      overrideDefaultTags: true,
+      tags: ["", ""],
+    },
+    destroyOnClose: true,
+    autoSuggestConfig: {
+      enabled: true,
+      noOfLetters: 2,
+      enableSearchRequest: true,
+    },
+    customMic: {
+      enabled: true,
+      voiceSdkRequest: true,
+    },
+    speechData: {
+      enable: true,
+      linkReplaceText: "here",
+    },
+    showPostbackValue: true,
+    sdkType: "w",
+    showPostbackValue: true,
+    wrongFeedbackMessage: "please avoid use of special characters",
+    translateTextOnEnter: true,
+    i18nSupport: {
+      enabled: true,
+      langCode: "en",
+    },
+    passMessageInEnglish: true,
+  };
+  
+  window.options = initParam;
+
+  $('.lang-btn').on('click', function (event) {
+    $('#splashScreenTemplate').addClass('loading');
+    $currentElement = $(event.currentTarget);
+    $('.lang-btn').removeClass('lang-active');
+    $currentElement.addClass('lang-active');
+    var langCode = $currentElement.data('lang');
+    if (langCode) {
+      window.options.i18nSupport.langCode = langCode;
+    }
+    destroyOnClose();
+    websdk.initialize(window.options);
+  });
+});
+
+window.addEventListener("message", receiveInlineChatboxMessage, false);
+function receiveInlineChatboxMessage(event){
+    var data = event.data
+    var type = data.type;
+    if (event.origin === window.options.domain||event.origin === window.options.parentDomain||window.options.parentDomain==='*'){
+        switch (type) {
+            case "receiveOptionsReq":
+              $('#splashScreenTemplate').fadeOut();
+        }
+    }
+}
+
+window.sendMessageToParent = function(data){
+  var hostedDomain = window.options.hostedDomain || window.options.parentDomain || window.options.domain;
+  window.parent.postMessage(data, hostedDomain);
+}

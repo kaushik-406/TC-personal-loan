@@ -1,0 +1,229 @@
+@font-face {
+  font-family: "Ubuntu-Regular";
+  font-weight: normal;
+  font-style: normal;
+}
+.splashScreen {
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  background: transparent;
+  overflow: hidden;
+  z-index: 9999;
+}
+.splashScreen > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  justify-content: center;
+}
+.spashscreen-container {
+  outline: 1px solid #0073bb;
+  outline-offset: -20px;
+  outline-style: auto;
+}
+.choose-lang {
+  padding: 15px 34px;
+  border: 0.75px solid rgba(0, 0, 0, 0.1);
+  border-radius: 7px;
+  max-height: 270px;
+  overflow: auto;
+}
+.splashScreen .splash-header {
+  display: flex;
+  align-items: center;
+  background: #0073bb;
+  color: #fff;
+  padding: 8px 20px;
+  font-weight: bold;
+  font-size: 14px;
+}
+.splashScreen .splash-subheading {
+  color: #8e8e8e;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 16px;
+  line-height: 19px;
+  margin: 8px 0px 15px 0px;
+}
+.each-lang {
+  width: 120px;
+  height: 40px;
+  border: 1px solid rgba(206, 206, 206, 0.5);
+  border-radius: 20px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 9px;
+  cursor: pointer;
+}
+.each-lang:last-child {
+  margin-bottom: 0px;
+}
+.radio-container {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  border: 1px solid #0076ba;
+  margin-right: 8px;
+}
+.inner-radio {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0076ba;
+  display: none;
+}
+.lang-active .inner-radio {
+  display: block !important;
+}
+.splashScreen > div.loading-animation {
+  position: absolute;
+  display: none;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0px;
+  z-index: 9;
+}
+#splashScreenTemplate.loading .loading-animation {
+  display: flex;
+}
+.loading-animation img {
+  width: 50px;
+  height: 50px;
+}
+.lang-text {
+  font-style: normal;
+  font-weight: normal;
+  font-size: 14px;
+  line-height: 16px;
+  color: #444344;
+}
+.splash-footer {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  margin-top: 30px;
+  position: absolute;
+  bottom: 40px;
+  width: 100%;
+}
+.splash-image {
+  width: 100px;
+  height: auto;
+  margin-bottom: 27px;
+}
+.footer-image {
+  width: 32px;
+  height: 7px;
+  margin-left: 16px;
+}
+.splash-close {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  right: 15px;
+  top: 16px;
+  cursor: pointer;
+}
+#spalshscreen-icon {
+  padding: 0px;
+}
+#spalshscreen-icon img {
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+}
+.spashscreen-container {
+  background-color: #fff;
+}
+.splash-screen-container {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-image: url(../images/default/splash-bg.png);
+  background-size: cover;
+}
+.splash-header .tc-logo {
+  width: 54px;
+  margin-right: 15px;
+}
+.splash-screen-container .splash-header {
+  display: flex;
+  align-items: center;
+  background: #0073bb;
+  padding: 10px 20px;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+.splash-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 20px;
+}
+.splash-body .center-logo {
+  width: 103px;
+  margin: 7% 0px;
+}
+.splash-body-heading h4 {
+  font-weight: 400;
+  font-size: 14px;
+  color: #183d44;
+}
+.splash-body-heading {
+  margin: 0px 40px;
+  background: rgba(255, 254, 254, 0.1);
+  border: 1px solid #dbdbdb;
+  box-sizing: border-box;
+  box-shadow: 0px 2px 5px rgb(0 0 0 / 10%);
+  border-radius: 8px;
+  padding: 10px 10px;
+  line-height: 18px;
+}
+.splash-main-content {
+  margin-top: 30px;
+  width: 100%;
+  padding: 0px 25px;
+}
+
+.splash-main-content .panel.panel-default {
+  border: 1px solid #0172bb;
+  border-radius: 15px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.splash-main-content .panel-body {
+  background: linear-gradient(180deg, #ffffff 0%, #d6d6d6 96.43%);
+  border: 0;
+  padding: 10px 12px;
+  color: #183d44;
+  font-size: 14px;
+  border-bottom: 1px solid #0172bb;
+}
+
+.splash-main-content .panel-footer button {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  background: #fff;
+  cursor: pointer;
+}
+
+.splash-main-content .panel-footer button:first-child {
+  border-bottom: 1px solid #0172bb;
+}

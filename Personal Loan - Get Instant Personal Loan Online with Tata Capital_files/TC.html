@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!-- saved from url=(0093)https://tiatwo.tatacapital.com/morfeuswebsdk/TC.html?hostedDomain=https://www.tatacapital.com -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="msapplication-tap-highlight" content="no">
+  
+  <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+  <script type="text/javascript" src="./jquery.js.download"></script>
+  <script type="text/javascript" src="./sdk.js.download" id="webSdk"></script>
+  <script type="text/javascript" src="./index.js.download"></script>
+  <script type="text/javascript" src="./TCFrame.js.download"></script>
+  <link rel="stylesheet" type="text/css" href="./splash.css">
+  <link rel="icon" href="data:;base64,iVBORwOKGO=">
+  <link rel="manifest" href="https://tiatwo.tatacapital.com/morfeuswebsdk/manifest.json">
+  <script type="text/javascript" src="./sw_cache.js.download"></script>
+  <title>ARIA</title>
+  <style>
+    html * {
+      font-family: 'Ubuntu-Regular', sans-serif !important;
+      box-sizing: border-box;
+      padding: 0px;
+      margin: 0px;
+    }
+
+    body {
+      margin: 0px;
+      padding: 0px;
+      font-family: Ubuntu-Regular, sans-serif;
+    }
+
+    #chatBoxFrame {
+      background-color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="splashScreen" id="splashScreenTemplate">
+    <div class="loading-animation">
+      <img src="./loading.svg" alt="loading animation">
+    </div>
+    <div class="spashscreen-container" id="spalshscreen-container" style="">
+      <div class="splash-screen-container">
+        <div class="splash-header">
+          <img src="./tata-icon2.png" class="tc-logo" alt="tc-logo"> TIA - Your Virtual Assistant
+          <img src="./splash-cross.png" onclick="minimizeSplashScreen()" class="splash-close" alt="close">
+        </div>
+        <div class="splash-body">
+          <img src="./tata-icon2.png" class="center-logo" alt="tc-logo">
+          <div class="splash-body-heading">
+            <h4>Hi! I'm TIA, here to assist you related to Consumer Loans.</h4>
+          </div>
+          <div class="splash-main-content">
+            <div class="panel panel-default">
+              <div class="panel-body">
+                Select your preferred language to proceed
+              </div>
+              <div class="panel-footer">
+                <button class="btn btn-primary lang-btn" data-lang="en">English</button>
+                <button class="btn btn-primary lang-btn" data-lang="hi">हिन्दी</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="splash-footer">
+          <img src="./splash-footer.png" alt="tc-logo">
+        </div>
+      </div>
+    </div>
+    <div class="spalsh-chat-button-icon" id="spalshscreen-icon" onclick="openSplashScreen();" style="display: none;">
+      <img src="./tata-icon2.png" alt="chat icon">
+    </div>
+  </div>
+  <script>
+    $(document).ready(function(){
+      openSplashScreen();
+    })
+    function openSplashScreen() {
+      window.parent.postMessage(
+        { type: 'showTCFrame' },
+        window.options.hostedDomain
+      );
+      $('#spalshscreen-icon').hide();
+      $('#spalshscreen-container').show();
+    }
+    function minimizeSplashScreen() {
+      window.parent.postMessage(
+        { type: 'hideTCFrame' },
+        window.options.hostedDomain
+      );
+      $('#spalshscreen-container').hide();
+      $('#spalshscreen-icon').show();
+    }
+  </script>
+
+
+</body></html>

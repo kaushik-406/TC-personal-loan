@@ -1,0 +1,867 @@
+/*
+ * (C) Copyright 2019 Active Intelligence Pte Ltd (http://active.ai/).
+ *
+ * @author Active.ai
+ * 
+ * This software is the confidential and proprietary information of Active Intelligence.
+ * ("Confidential Information"). You shall not disclose such Confidential Information and shall use
+ * it only in accordance with the terms of the license agreement you entered into with Active
+ * Intelligence
+ *
+ */
+
+(function(window, document) {
+
+    $(document).ready(function(){
+        loadWebSdkEventsScript()
+     });
+    window.showRefreshBanner = function () {
+        if(!isHybrid()){
+            chatBoxWindow.postMessage({
+                type : 'showRefreshBanner'
+                }, window.options.domain);
+        } else{
+            if(typeof MFJSInterface.onWebsdkUpdateStart === 'function'){
+                MFJSInterface.onWebsdkUpdateStart()
+            }
+        }
+    };
+
+    function onNewServiceWorker(registration, callback) {
+        if (registration.waiting) {
+            return callback();
+        }
+
+        function listenInstalledStateChange() {
+            registration.installing.addEventListener('statechange', function (event) {
+                if (event.target.state === 'installed') {
+                    callback();
+                }
+                if (event.target.state === 'activated') {
+                    if(isHybrid() && typeof MFJSInterface.onWebSdkUpdate === 'function'){
+                        MFJSInterface.onWebsdkUpdateFinish()
+                    }
+                }
+            });
+        };
+
+        if (registration.installing) {
+            return listenInstalledStateChange();
+        }
+
+        registration.addEventListener('updatefound', listenInstalledStateChange);
+    }
+
+    window.addEventListener('load', function () {
+        if(typeof navigator.serviceWorker !== 'undefined') {
+            navigator.serviceWorker.register('sw_cache.js')
+                .then(function (registration) {
+                    if (!navigator.serviceWorker.controller) {
+                        return;
+                    }
+    
+                    onNewServiceWorker(registration, function () {
+                        showRefreshBanner();
+                    });
+                })
+                .catch(function (error) {
+                    console.log('Service Worker error :: ', error);
+                    if(error && error.message) {
+                        console.log('Service Worker error message :: ', error.message);
+                    }
+                });
+        }
+    });
+
+     function getParameterByName(name, url) {
+         name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+         var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+         var results = regex.exec(location.search);
+         return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+     }
+      
+     function loadingWebsdkFromNotification(){
+        var isNotification=getParameterByName('notificationId');
+        var isNotificationType=getParameterByName('notificationType');
+
+        if(isNotificationType && isNotification){
+          var inData = {
+            notificationId:isNotification,
+            notificationType:isNotificationType
+          };
+          websdk.receive(inData);
+          return true;
+        }
+       else{
+         return false;
+       }
+     }
+    
+    window.receiveOptions = {};
+    window.defaultChatBoxHeight = "90%";
+    /**
+     * @namespace  
+     * @name  websdk 
+     * @description The global websdk object
+     * @type object
+     * 
+     */
+    window.websdk = window.websdk || (window.websdk = []);
+    window.addEventListener("message", receiveMessage, false);
+
+    /**
+     *  @memberOf websdk
+     *  @description websdkdata event is fired by websdk when response has outData
+     *  @event websdk#websdkdata
+     *  @property {object} outData contains data passed to wrappers from websdk 
+     *  
+     */
+    window.syntheticEvent = document.createEvent('Event');
+        syntheticEvent.initEvent('websdkdata', true, true);
+
+    /**
+     *  @function orientationchange
+     *  @description orientationchange is fired when device orientation changes
+     *  @event websdk#orientationchange
+     *  
+     */
+    window.addEventListener("orientationchange", function() {
+        if(isTablet()){
+            setFrameDimensions(window.chatBoxFrame, window.chatBoxWindow, window.options);
+            if (isInLandscapeOrientation(window.chatBoxWindow)) {
+                var header = "{{>desktopheader}}";
+                var newHeader = chatBoxWindow.Handlebars.compile(header)({});
+            } else {
+                 header = "{{>mobileheader}}";
+                 newHeader = chatBoxWindow.Handlebars.compile(header)({});
+            }
+
+            $("#chatBoxFrame").contents().find("#chatHeader").html(newHeader);
+        }
+
+    }, false);
+
+    /** 
+     * @global
+     * @function backButtonAction
+     * @description overridable function triggered, when the back button is pressed chatBox header on the mobile mode
+     * 
+     */
+    window.backButtonAction = function(){
+        if(isHybrid()) {
+            $("#chatButtonFrame, #chatBoxFrame").remove();
+            MFJSInterface.backButtonAction();
+        }
+    }
+    
+    window.doSslHandshake = function(data){
+      //call native method
+      if(window.options.sslEnabled){
+       MFJSInterface.doSSLHandshake(data.url, data.messageId); 
+      }
+      else{
+        chatBoxWindow.postMessage({ type:"sslCheck", "data" : {
+          result: true
+        }}, window.options.domain);
+      }
+    }
+    
+    window.fetchSslFlag = function(data){
+        chatBoxWindow.postMessage({ type:"sslCheck", "data" : data}, window.options.domain); 
+    }
+    
+    /**
+     * @global
+     * @function destroyOnClose
+     * @description overidable function triggered on clicking the close button, when "destroyOnClose" flag is enabled 
+     */
+    window.destroyOnClose = function(){
+        $("#chatButtonFrame, #chatBoxFrame").remove();
+
+    }
+    
+    window.hideChatBox = function(){
+      
+    }
+    
+    websdk.externalUtterance = function(data){
+      showChatbox();
+      chatBoxWindow.postMessage({ type:"externalUtterance", "data" :data}, window.options.domain);
+    }
+
+    window.isMobile = function(){
+        if (navigator.userAgent.match(/Android/i) || navigator.userAgent.match(/webOS/i) || navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPod/i) || navigator.userAgent.match(/BlackBerry/i) || navigator.userAgent.match(/Windows Phone/i)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    window.isHybrid = function(){
+        if( window.options.sdkType && (window.options.sdkType.toLowerCase() === "i" || window.options.sdkType.toLowerCase() === "a")){
+          return true;
+        }
+        else{
+          return false;
+        }
+      }
+
+    function isTablet(){
+        if(navigator.userAgent.match(/iPad/i) ){
+            return true;
+        }
+    }
+
+    function isInLandscapeOrientation(frameWindow){
+        if(frameWindow.parent.innerWidth > frameWindow.parent.innerHeight){
+            return true;
+        }
+        return false;
+    }
+
+    function loadMobileFrame(frame, frameWindow, options){
+        frame.style.height = "100%";
+        frame.style.width = "100%";
+        frame.style.padding = "0";
+        frame.style.margin = "0";
+        frame.style.top = "0";
+        frame.style.left = "0";
+        frame.style.maxHeight = null;
+    }
+
+    function cssPropertySupported(prop, value) {
+        var d = document.createElement('div');
+        d.style[prop] = value;
+        return d.style[prop] === value;
+    }
+
+    function loadDesktopFrame(frame, frameWindow, options){
+        frame.style.height = cssPropertySupported('height','-webkit-fill-available') ?  '-webkit-fill-available' : options.desktop.chatWindowHeight;
+        frame.style.width = options.desktop.chatWindowWidth;
+        frame.style.bottom = options.desktop.chatWindowBottom || "50px";
+        frame.style.right = options.desktop.chatWindowRight || "20px";
+        frame.style.minHeight = options.desktop.minHeight || "480px";
+        frame.style.minWidth = options.desktop.minWidth || "320px";
+        frame.style.borderRadius = options.desktop.borderRadius || "6px";
+        frame.style.top = options.desktop.top|| null;
+        frame.style.left = options.desktop.left || null;
+        frame.style.paddingTop = options.desktop.paddingTop || '1.5rem'
+    }
+
+  
+    function setFrameDimensions(frame, frameWindow, options){
+
+        if(isTablet()){
+
+            if(isInLandscapeOrientation(frameWindow)){
+
+                loadDesktopFrame(frame, frameWindow, options);
+            } else {
+                loadMobileFrame(frame, frameWindow, options);
+            }
+
+
+        } else if (isMobile()) {
+            loadMobileFrame(frame, frameWindow, options);
+        } else {
+            loadDesktopFrame(frame, frameWindow, options);
+        }
+
+    }
+
+    /**
+        * Checks the platform browser platform like Android/IOS/Windows or desktop
+        * @param {Object} config-{browsername, version}
+        * @return {boolean}
+    */
+    function getPlatform() {
+      var ua = window.navigator.userAgent;
+      if(ua.indexOf("Android") > -1) {
+        return 'android';
+      } else if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+        return "ios"
+      } else if (ua.match(/iemobile/i) || ua.match(/Windows Phone/i) || ua.match(/WPDesktop/i)) {
+        return "windows"
+      }
+      return "desktop";
+    }
+
+    window.setStorage = function (key, value) {
+        try{
+            sessionStorage.setItem(key, value);
+        } catch(error){
+            console.log(error)
+        }
+    }
+
+    function getBrowserName () {
+
+        var browser = ["Trident","MSIE", "Firefox", "Safari", "Chrome", "Edge", "OPR", "CriOS"];
+        var agent = navigator.userAgent;
+        var index =browser.length-1;
+        for(index;index >= 0 ; index--){
+            if(agent.indexOf(browser[index]) !== -1){
+                break;
+            }
+        }
+        return browser[index]
+
+    }
+
+    /**
+        * Provides browser detail i.e browsername and browserversion
+        * @return {Object} obj - {browsername, browserversion}
+    */
+
+    function getBrowser(){
+        var browsername = getBrowserName();
+        var version;
+        switch(browsername){
+            case 'Chrome':
+                var temp_chrome = navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./);
+                version = temp_chrome[2];
+                break;
+            case 'CriOS':
+                var temp_crios = navigator.userAgent.split("/");
+                browsername = "Chrome"
+                version = temp_crios[temp_crios.length-3];
+                break;
+            case 'Firefox':
+                var temp_firefox = navigator.userAgent.split("/");
+                version = temp_firefox[temp_firefox.length-1];
+                break;
+            case 'Safari':
+                var temp_safari = navigator.userAgent.split("/");
+                version = temp_safari[temp_safari.length-2];
+                break;
+            case 'MSIE':
+                var ua = navigator.userAgent;
+                var index = ua.indexOf('MSIE');
+                version = parseInt(ua.substring(index + 5, ua.indexOf('.', index)));
+                break;
+            case 'OPR':
+                var temp_opr = navigator.userAgent.split("/");
+                version = temp_opr[temp_opr.length-1];
+                break;
+            case 'Edge':
+                var temp_edge = navigator.userAgent.split("/");
+                version = temp_edge[temp_edge.length-1];
+                break;
+            case 'Trident':
+                version = "7.0";
+                break;
+            default :
+                break;
+        }
+        return {
+            version: version,
+            name: browsername
+        }
+    }
+
+    /**
+        * Checks the browser compatibility against a config object
+        * @param {Object} config-{browsername, version}
+        * @return {boolean}
+    */
+
+    function browserVersionCheck(browserConfig){
+        var defaultConfig = {
+          "desktop": {
+            "Chrome": 9,
+            "MSIE": 10,
+            "Opera": 10,
+            "Firefox": 10,
+            "Safari": 6.2
+          },
+          "ios": {
+            "Chrome": 9,
+            "Opera": 10,
+            "Firefox": 10,
+            "Safari": 6.2
+          },
+          "android": {
+            "Chrome": 9,
+            "Opera": 10,
+            "Firefox": 10,
+            "Safari": 6.2
+          }
+        };
+        var config = {};
+
+        if(browserConfig){
+           config = jQuery.extend({},defaultConfig, browserConfig);
+        }
+        else{
+            config = jQuery.extend({},defaultConfig);
+        }
+        var browser = getBrowser();
+        var name = browser.name;
+        var version = parseFloat(browser.version).toFixed(2);
+        var platform = getPlatform();
+        var platformConfig = config[platform];
+
+        if((name === "MSIE" && version < platformConfig.MSIE)||(name === "Chrome" && version <= platformConfig.Chrome) || (name === "Firefox" && version <= platformConfig.Firefox) || (name === "OPR" && version <= platformConfig.Opera)|| (name === "Edge" && version <= platformConfig.Edge)||(name === "Safari" && version <= platformConfig.Safari)){
+            alert("Unfortunately, your browser is not supported, please try updating your browser");
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+  
+
+    websdk.events = {};
+
+
+    websdk.receive = function(inData){
+        window.receiveOptions.inData = inData;
+    }
+    websdk.logout =function(){
+        var data={};
+        chatBoxWindow.postMessage({ type:"externalLogout", "data" :data}, window.options.parentDomain);
+
+    }
+
+    websdk.addEventListener = function(eventName, handler){
+
+        if(!(eventName in websdk.events)){
+            websdk.events[eventName] = [];
+        }
+
+        websdk.events[eventName].push(handler);
+    }
+
+    websdk.dispatchEvent = function(eventName, args){
+
+        if(websdk.events[eventName]){
+            var handlers = websdk.events[eventName];
+            for(var i=0; i<handlers.length; i++){
+
+                if(typeof handlers[i] === "function"){
+                    handlers[i].call(this, {  "type" : eventName, "data" : args   });
+                }
+
+            }
+        }
+
+    }
+
+    /**
+     * @memberOf websdk
+     * @function initialize
+     * @param  {object} options Accepts json based websdk configuration  
+     * 
+     */
+    websdk.initialize = function(options) {
+         if(!options.reinitiateMessage){
+          options.reinitiateMessage="Looks like something went wrong.Reintializing the chat window.";
+        }
+        if(browserVersionCheck())
+        {
+            options.longitude = '';
+            options.latitude = '';
+            options.version = "3.1.2";
+              try{
+                 if(window.location.protocol==='file:')
+                     {
+                         options.parentDomain='*';
+
+                     }
+                else if(window.location.protocol==='https:'||window.location.protocol==='http:')
+                {
+                         options.parentDomain = window.location.port ? (window.location.protocol+"//"+window.location.hostname+':'+window.location.port) : (window.location.protocol+"//"+window.location.hostname);
+                     }
+
+            }catch(e){
+                console.log('domain protocol '+window.location.protocol+' doesnt match');
+                return;
+
+            }
+            if(loadingWebsdkFromNotification() || options.messageContent){
+               options.initAndShow = "1"
+            }
+            options.baseSdkPath = getSdkBasePath();
+            window.chatButtonFrame = createChatButton(options);
+            document.body.appendChild(chatButtonFrame);            
+            afterChatButtonRender(chatButtonFrame);
+            
+            window.chatBoxFrame = createChatBox(options);
+            document.body.appendChild(chatBoxFrame);
+            afterChatBoxRender(chatBoxFrame);
+
+            window.options = options;
+            window.options.channelType = window.options.sdkType.toLowerCase();
+            options.addToHomeScreen = checkForHomeScreen() ? true : false;
+
+            window.chatButtonWindow = chatButtonFrame.contentWindow;
+            
+
+            window.chatBoxWindow = chatBoxFrame.contentWindow;
+
+            if (options.dualMode === "1") {
+
+                chatBoxFrame.style.height = "80%";
+                chatBoxFrame.style.width = "100%";
+                chatBoxFrame.style.padding = "0";
+                chatBoxFrame.style.margin = "0";
+                chatBoxFrame.style.top = "0";
+                chatBoxFrame.style.left = "0";
+                chatBoxFrame.style.borderRadius = "0";
+
+            } else {
+                setFrameDimensions(chatBoxFrame, chatBoxWindow, options);
+            }
+
+            //document.querySelector(".loading").style.display = "none";
+
+            if (window.options.initAndShow === "1") {
+                setTimeout(function() {
+                    chatButtonFrame.style.display = "none";
+                    chatBoxFrame.style.display = "block";
+                }, 100);
+            }
+        }
+        if(window.options.quickTags){
+          if(!window.options.quickTags.tags||!Array.isArray(window.options.quickTags.tags))
+          {
+              if(window.options.quickTags.overrideDefaultTags){
+                window.options.quickTags.tags = [];
+              }
+              else{
+                window.options.quickTags.tags=['recharge','balance','transfer','pay bills'];
+              }
+
+          }
+        }
+
+        if(options.retryBot || options.retryBot == 0){
+          window.options.retryBot = options.retryBot;
+        }
+        
+        if(window.options.xAPIKey) {
+            window.setStorage('xAPIKey', window.options.xAPIKey);
+        }
+        if(window.options.xAPISecret) {
+            window.setStorage('xAPISecret', window.options.xAPISecret);
+        }
+    };
+
+    /**
+     * @memberOf websdk
+     * @function logoutFromNativeView
+     */
+    websdk.logoutFromNativeView = function () {
+        var data = {};
+        chatBoxWindow.postMessage({ type:"logoutFromNativeView", "data" :data}, window.options.parentDomain);
+    };
+
+    function receiveMessage(event) {
+        window.webSdkEventData = event.data || { "type": "" }
+        var type = webSdkEventData.type;
+        var domain = (window.options && window.options.domain) ? window.options.domain : "";
+        webSdkEventData.domain = domain;
+        if (event.origin === domain) {
+            if(window.webSdkEvent && window.webSdkEvent[type]){
+                window.webSdkEvent[type]();
+            }
+        }
+    }
+
+
+    function getSdkBasePath() {
+        var url = document.getElementById("webSdk").src;
+        var sdkBasePath = url.split("sdk.js")[0];
+        return sdkBasePath;
+    }
+  
+    function createChatButton(options) {
+        var chatButtonFrame = document.createElement('iframe');
+        chatButtonFrame.src = getSdkBasePath() + "chatButton.html";
+        
+        // If the window.integration is inline, the the window.options is set to sessionStorage,
+        // else passed as a param to the iframe
+        if(options.integration === 'inline') {
+            window.setStorage('options', btoa(JSON.stringify(options)));
+        } else {
+            chatButtonFrame.src += "?data=" + btoa(JSON.stringify(options));
+        }
+        
+        chatButtonFrame.id = "chatButtonFrame";
+        chatButtonFrame.name = "chatButtonFrame";
+        chatButtonFrame.allowTransparency = options.chatButtonStyle && options.chatButtonStyle.transparency ? options.chatButtonStyle.transparency : "true";
+        chatButtonFrame.style.position =  options.chatButtonStyle && options.chatButtonStyle.position ? options.chatButtonStyle.position : "fixed";
+        chatButtonFrame.style.zIndex = options.chatButtonStyle && options.chatButtonStyle.zIndex ? options.chatButtonStyle.zIndex :  "999";
+        chatButtonFrame.style.height = options.chatButtonStyle && options.chatButtonStyle.height ? options.chatButtonStyle.height  :  "25.5%";
+        chatButtonFrame.style.bottom = options.chatButtonStyle && options.chatButtonStyle.bottom  ?  options.chatButtonStyle.bottom : options.desktop.chatButtonBottom || "20px";
+        chatButtonFrame.style.right = options.chatButtonStyle && options.chatButtonStyle.right  ? options.chatButtonStyle.right : "10px";
+        chatButtonFrame.style.width = options.chatButtonStyle && options.chatButtonStyle.width ? options.chatButtonStyle.width : "35%";
+        chatButtonFrame.style.minWidth = options.chatButtonStyle && options.chatButtonStyle.minWidth ? options.chatButtonStyle.minWidth : "414px";
+        chatButtonFrame.style.maxWidth= options.chatButtonStyle && options.chatButtonStyle.maxWidth ? options.chatButtonStyle.maxWidth : "414px";
+        chatButtonFrame.style.border = options.chatButtonStyle && options.chatButtonStyle.border ? options.chatButtonStyle.border : 0;
+        chatButtonFrame.style.background = options.chatButtonStyle && options.chatButtonStyle.background ? options.chatButtonStyle.background : "";
+        chatButtonFrame.scrolling = "no";
+        return chatButtonFrame;
+    }
+
+    function createChatBox(options) {
+        var chatBoxFrame = document.createElement('iframe');
+        chatBoxFrame.src = getSdkBasePath()+"chatBox.html";
+
+        // If the window.integration is inline, the the window.options is set to sessionStorage,
+        // else passed as a param to the iframe
+        if(!options.integration || options.integration !== 'inline') {
+            chatBoxFrame.src += "?data=" + btoa(JSON.stringify(options));
+        }
+
+        chatBoxFrame.allow = "geolocation; microphone; camera";
+        chatBoxFrame.id = "chatBoxFrame";
+        chatBoxFrame.name = "chatBoxFrame";
+        chatBoxFrame.allowTransparency = options.chatBoxStyle && options.chatBoxStyle.transparency ? options.chatBoxStyle.transparency : "true";;
+        chatBoxFrame.style.border = options.chatBoxStyle && options.chatBoxStyle.border ? options.chatBoxStyle.border :  "0";
+        chatBoxFrame.style.boxShadow = options.chatBoxStyle && options.chatBoxStyle.boxShadow  ? options.chatBoxStyle.boxShadow : "0 4px 8px 0 #BABABA, 0 6px 20px 0 #888";
+        chatBoxFrame.style.position = options.chatBoxStyle && options.chatBoxStyle.position ? options.chatBoxStyle.position : "fixed";
+        chatBoxFrame.style.display = options.chatBoxStyle && options.chatBoxStyle.display ? options.chatBoxStyle.display :  "none";
+        chatBoxFrame.style.zIndex =  options.chatBoxStyle && options.chatBoxStyle.zIndex ? options.chatBoxStyle.zIndex : "999";
+
+        chatBoxFrame.scrolling = "no";
+
+        return chatBoxFrame;
+    }
+    function loadWebSdkEventsScript(){
+      var script = $('<script></script>');
+      $(script).attr('async', "true");
+      $(script).attr('src',getSdkBasePath()+'webSdkEvents.js');
+      $('head').append($(script));
+    }
+   window.initializePushService = function(firebaseConfig){
+    if(firebaseConfig){
+        firebase.initializeApp(firebaseConfig);
+        var messaging = firebase.messaging();
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+        var senderId = firebaseConfig.messagingSenderId;
+        var pathToSw = "libs/websdk/sw.js?senderId=" + senderId;
+        navigator.serviceWorker.register(pathToSw)
+          .then(function(registartion){
+          messaging.useServiceWorker(registartion);
+          messaging.requestPermission()
+          .then(function(){
+            return messaging.getToken();
+          })
+          .then(function(token){
+            chatBoxWindow.postMessage({type: "pushNotification", "token": token}, window.options.domain);
+            console.log(token);
+          })
+          .catch(function(err){
+            console.log(err);
+          });
+          messaging.onTokenRefresh(function(){
+          messaging.getToken()
+          .then(function(refreshedToken){
+            chatBoxWindow.postMessage({type: "pushNotification", "token": token},  window.options.domain);
+             console.log(token); 
+          })
+          .catch(function(error){
+            console.log(error); 
+          })
+          })
+          messaging.onMessage(function(payload){
+            console.log('onMessage', payload);
+            var notification = {
+              notificationType: payload.data.notificationType,
+              notificationId: payload.data.notificationId
+            }
+            chatBoxWindow.postMessage({ type: "notificationAuthMessage", "data" : notification}, window.options.domain);
+          });
+        })
+      }
+    }
+  }
+  
+  window.showChatbox=function(){
+    try{
+          var chatBoxHeight = ""+window.options.desktop.chatWindowHeight;
+      }catch(error){
+           chatBoxHeight = defaultChatBoxHeight;
+      }
+
+      if(isTablet()){
+          if(isInLandscapeOrientation(chatBoxWindow)){
+              $('#chatBoxFrame').css({minHeight:'5%',maxHeight:chatBoxHeight}).animate({height:chatBoxHeight},200,'linear');
+          }
+          else{ 
+              $('#chatBoxFrame').css({minHeight:'100%'}).animate({height:chatBoxHeight},200,'linear');
+          }
+      } else {
+          if(!isMobile()){
+              $('#chatBoxFrame').css({minHeight:'5%',maxHeight:chatBoxHeight}).animate({height:chatBoxHeight},200,'linear');
+          }
+          else{ 
+              $('#chatBoxFrame').css({minHeight:'100%'}).animate({height:chatBoxHeight},200,'linear');
+          }
+      }
+
+
+      chatBoxFrame.style.display = "block";
+//                    chatBoxWindow.initScrollHeight = chatBoxWindow.document.getElementById("messages").scrollHeight;
+        if((!window.options.closeButtonFrame)){
+            $("#chatButtonFrame").hide();
+            if(window.options.messageChatBoxFrameContainerParent){
+                top.parent.postMessage({ type: "showChatBox" }, window.options.messageChatBoxFrameContainerParent); 
+            }
+        }
+  }
+  
+  /**
+     *
+     * @memberOf websdk
+     * @function afterChatBoxRender
+     * @description callback function to be used by customer implementation project after chatbox render
+     * @param {function} chatBox iframe HTMLElement
+  */
+  window.afterChatBoxRender = function(chatBoxFrame){
+
+  }
+    /**
+     *
+     * @memberOf websdk
+     * @function afterChatButtonRender
+     * @description callback function to be used by customer implementation project after chatbox render
+     * @param {function} chatButton iframe HTMLElement
+  */
+  window.afterChatButtonRender = function(chatButtonFrame){
+
+  }
+  window.reinitiateChatBot=function(reinitialize){
+      reinitialize=reinitialize==true?reinitialize:false;
+       destroyOnClose();
+        setTimeout(function() {
+            if(reinitialize)
+                {   
+                    if(options.retryBot){
+                      options.retryBot =  options.retryBot - 1;
+                    }
+                    if(options.retryBot >0){
+                     websdk.initialize(options); 
+                    }
+                }
+        }, 2000);
+  }
+  /*Voice SDK exposed functions to the MFSpeechKit*/
+  websdk.voiceSdkOnStateChange = function(state){
+    chatBoxWindow.postMessage({
+        type : 'voiceSdkStateChange',
+        data : state
+    }, window.options.domain);
+  }
+  websdk.voiceSdkOnSpeechHint = function(hints){
+    try{
+        hints = JSON.parse(hints);
+        if(hints.length > 0){
+            chatBoxWindow.postMessage({
+                type : 'voiceSdkOnHintsRecieve',
+                data : hints
+            },window.options.domain);
+        }
+    } catch(error){}
+  }
+  websdk.voiceSdkOnError = function(error){
+    var errorObj = error ?JSON.parse(error) : '';
+    chatBoxWindow.postMessage({
+        type : 'voiceSdkError',
+        data : errorObj
+    }, window.options.domain)
+  }
+  websdk.voiceSdkOnSpeechRecognise = function(result){
+    if(!jQuery.isEmptyObject(result)){
+        result = JSON.parse(result);
+        chatBoxWindow.postMessage({
+            type : 'voiceSdkMsgResponse',
+            data : result
+        },window.options.domain);
+    }
+  }
+  websdk.voiceSdkOnInitialise = function(success){
+    var voiceSdkInitialized = success === 'true' ? true : false;
+    chatBoxWindow.postMessage({
+        type : 'voiceSdkInitialized',
+        data : voiceSdkInitialized
+    }, window.options.domain);
+    if(typeof MFJSInterface.voiceSdkAddSuggestion === 'function'){
+        MFJSInterface.voiceSdkAddSuggestion(JSON.stringify(window.options.speechConfig.customWords||[]));
+    }
+  }
+  websdk.closeChatOnDeviceBackButton = function () {
+      $("#chatButtonFrame, #chatBoxFrame").remove();
+      MFJSInterface.closeActivity();
+  }
+  websdk.pushNotification = function (notificationDetails) {
+    chatBoxWindow.postMessage({
+      type : 'pushNotification',
+      token : notificationDetails.token,
+      deviceId: notificationDetails.deviceId,
+      developMode: notificationDetails.developMode || ''
+    }, window.options.domain);
+  }
+  websdk.setNotificationDetails = function(notificationDetails) {
+
+    notificationDetails.addOnResponse = 'viewnotification';
+    chatBoxWindow.postMessage({
+        type : 'notificationAuthMessage',
+        data : notificationDetails
+    }, window.options.domain);
+  }
+
+  websdk.invokeInit = function(configData){
+    var data = configData;
+    handleSSLConfig(data.sslEnabled);
+    chatBoxWindow.postMessage({
+      type : "invokeInit",
+      data : data
+    }, window.options.domain)
+  }
+  //handles user action on notification in hybrid
+  websdk.onPushNotificationAction = function(data){
+    chatBoxWindow.postMessage({
+        type : "notificationAuthMessage",
+        data : data
+      }, window.options.domain)
+  }
+
+  websdk.voiceSdkOnForeground = function(success){
+    var voiceSdkForeground = success === 'true' ? true : false;
+    if(voiceSdkForeground){
+        chatBoxWindow.postMessage({
+            type : 'voiceSdkForeground',
+            data : voiceSdkForeground
+        }, window.options.domain);
+    }
+  }
+
+  /*
+    * @memberof websdk.sdk
+    * @function passDataFromNative 
+    * @param data This is object of key value pair 
+    * @description  called by native to pass value of perticular key which is stored in native storage
+    */
+
+   websdk.passDataFromNative = function (data) {
+    chatBoxWindow.postMessage({ type: "sendDataFromNativeToWebview", data: data }, webSdkEventData.domain);
+  }
+  function checkForHomeScreen(){
+        if(isMobile()){
+            var addToHomeScreen = getParameterByName('ath');
+            if(addToHomeScreen && addToHomeScreen === 'yes'){
+                return true;
+            } else{
+                return false;
+            }
+        } else{
+            return false;
+        }
+    }
+
+    function handleSSLConfig(ssl){
+      window.options.sslEnabled = ssl || false;
+    }
+})(window, document);

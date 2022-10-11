@@ -1,0 +1,164 @@
+(function(window){
+  var isChatbotInitialized = false;
+  function isTablet(){
+      if(navigator.userAgent.match(/iPad/i) ){
+          return true;
+      }
+  }
+  function isInLandscapeOrientation(frameWindow){
+      if(frameWindow.parent.innerWidth > frameWindow.parent.innerHeight){
+          return true;
+      }
+      return false;
+  }
+  window.hideChatBox = function(){
+      var data = {
+          type: "hideTCFrame"
+      }
+      sendMessageToParent(data);
+  }
+  window.showChatbox=function(){
+      var data = {
+          type: "showTCFrame"
+      }
+      sendMessageToParent(data);
+      setTimeout(function(){
+          try{
+              var chatBoxHeight = ""+window.options.desktop.chatWindowHeight;
+          }catch(error){
+              chatBoxHeight = defaultChatBoxHeight;
+          }
+      
+          if(isTablet()){
+              if(isInLandscapeOrientation(chatBoxWindow)){
+                  $('#chatBoxFrame').css({minHeight:'5%',maxHeight:chatBoxHeight, height:chatBoxHeight});
+              }
+              else{ 
+                  $('#chatBoxFrame').css({minHeight:'100%', height:chatBoxHeight});
+              }
+          } else {
+              if(!isMobile()){
+                  $('#chatBoxFrame').css({minHeight:'5%',maxHeight:chatBoxHeight,height:chatBoxHeight});
+              }
+              else{ 
+                  $('#chatBoxFrame').css({minHeight:'100%',height:chatBoxHeight});
+              }
+          }
+          chatBoxFrame.style.display = "block";
+          if((!window.options.closeButtonFrame)){
+              $("#chatButtonFrame").hide();
+              if(window.options.messageChatBoxFrameContainerParent){
+                  top.parent.postMessage({ type: "showChatBox" }, window.options.messageChatBoxFrameContainerParent); 
+              }
+          }
+      },10)
+  }
+  function destroyChatbot(reInitialize){
+      try{
+          window.destroyOnClose();
+      }catch(err){
+          console.log(err);
+      }
+      var data = {
+          type: "closeTCParentFrame",
+          reInitialize: reInitialize,
+      }
+      sendMessageToParent(data);
+  }
+  function pingParent(){
+      var data = {
+          type: "chatbotIsActive"
+      }
+      sendMessageToParent(data);
+  }
+  function chatbotIsReady(){
+      if(isChatbotInitialized === false){
+          var data = {
+              type: 'showTCIcon'
+          }
+          sendMessageToParent(data);
+          isChatbotInitialized = true;
+      } else {
+          var data = {
+              type: 'sendInitCall',
+              paramsFromClient: {}
+          }
+          sendMessageToChatbot(data);
+      }
+  }
+  function changeLanguage(code){
+      window.options.i18nSupport.langCode = code;
+      if(code === 'ar'){
+          window.options.i18nSupport.rtl = true;
+      }else{
+           window.options.i18nSupport.rtl = false;
+      }
+      destroyOnClose();
+      websdk.initialize(window.options);
+  }
+  function middleware(event){
+      var eventData = event.data || { "type": "" };
+      var hostedDomain = window.options.hostedDomain || window.options.parentDomain;
+      var sdkDomain = window.options.domain || '';
+      if(event.origin == hostedDomain || event.origin == sdkDomain){
+          if(eventData.type){
+              switch(eventData.type){
+                  case 'closeTCFrame':
+                      destroyChatbot(eventData.reInitialize);
+                      break;
+                  case 'receiveOptionsReq':
+                      pingParent();
+                      break;
+                  case "changeLanguage":
+                      var langCode = eventData.langCode;
+                      changeLanguage(langCode);
+                      break;
+                  case "sendOptionsToBot":
+                      var optionsFromClinet = eventData.optionsFromParent || {};
+                      if(optionsFromClinet && optionsFromClinet.bankiChatbotLanguage) {
+                          window.options.i18nSupport.langCode = optionsFromClinet.bankiChatbotLanguage;
+                          if(optionsFromClinet.bankiChatbotLanguage === 'ar'){
+                              window.options.i18nSupport.rtl = true;
+                          }
+                      }
+                      window.options.optionsFromClinet = optionsFromClinet;
+                      websdk.initialize(window.options);
+                      break;
+                //   case 'startInit':
+                //       var paramsFromClient = eventData.paramsFromClient || {};
+                //       // window.options = $.extend({}, window.options, paramsFromClient);
+                //       // websdk.initialize(window.options);
+                //       var data = {
+                //           type: 'sendInitCall',
+                //           paramsFromClient: paramsFromClient
+                //       }
+                //       sendMessageToChatbot(data);
+                //       break;
+                  case 'preWebsdkRenderSuccess':
+                      chatbotIsReady();
+                      break;
+                  case "showMinimiseBot":
+                      var data = {
+                          type: 'showMinimiseBot'
+                      };
+                      window.sendMessageToParent(data);
+                      break;
+                  default:
+                      break;
+              }
+          }
+      }
+  }
+  window.addEventListener("message", middleware, false);
+})(window)
+
+window.sendMessageToParent = function(data){
+  var hostedDomain = window.options.hostedDomain || window.options.parentDomain ||window.options.domain;
+  window.parent.postMessage(data, hostedDomain);
+}
+
+window.sendMessageToChatbot = function(data){
+  var chatbotDomain = window.options.domain || window.location.origin;
+  chatBoxWindow.postMessage(data, chatbotDomain);
+}
+

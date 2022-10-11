@@ -1,0 +1,296 @@
+function getParameterByName(name, url) {
+    if (!url) {
+      url = window.location.href;
+    }
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+  window.isMobile = function(){
+    if (navigator.userAgent.match(/Android/i) || navigator.userAgent.match(/webOS/i) || navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPod/i) || navigator.userAgent.match(/BlackBerry/i) || navigator.userAgent.match(/Windows Phone/i)) {
+        return true;
+    } else {
+        return false;
+    }
+  }
+  // var isTesting = getParameterByName('testing');
+  if(!window.enableChatIcon){
+    window.enableChatIcon = function (){
+        // bot is ready you can enable bot anytime from now
+        var TCButton = document.getElementById('TC-icon');
+        if(TCButton){
+            TCButton.style.display = "block";
+        }
+    }
+  }
+  if(!window.enableTCbot){
+    window.enableTCbot = function(){
+        // if you want send anything to chatbot add in initParam
+        var initParams = {};
+        window.startTCBot(initParams);
+        var TCButton = document.getElementById('TC-icon');
+        if(TCButton){
+            TCButton.style.display = "none";
+        }
+        // window.initWebChatSDK(initParams);
+    }
+  }
+  if(!window.chatBotIsActive){
+    window.chatBotIsActive = function(){
+        console.log('User having something in chatbot');
+    }
+  }
+  
+  (function(window){
+    var clientHostName = window.TCbotHost || window.location.host;
+    window.initWebChatSDK = function(initParams){
+        var iframeStyle = {
+            "display": 'none',
+      }
+        var sendingParams = initParams || {};
+        sendingParams.hostedDomain = window.location.origin;
+        window.TCChatbotLanguage = 'en';
+        if(window.TCDefaultLangCode){
+            window.TCChatbotLanguage = window.TCDefaultLangCode === 'hi' ? 'hi' : 'en';
+        }
+        sendingParams.TCChatbotLanguage = window.TCChatbotLanguage;
+        var TCIframe = createTCIframe(clientHostName, sendingParams, iframeStyle);
+        setFrameDimensions(TCIframe);
+        document.body.appendChild(TCIframe);
+        window.TCIframe = TCIframe;
+    }
+    window.initWebChatSDK();
+    window.startTCBot = function(anyParams){
+        var paramsFromClient = anyParams || {};
+        var data = {
+            type: "startInit",
+            paramsFromClient: paramsFromClient
+        }
+        window.sendMessageToTCFrame(data);
+        try {
+            window.chatIconPosition = {};
+            if(paramsFromClient.bottom){
+                window.chatIconPosition.bottom = paramsFromClient.bottom;
+            }
+            if(paramsFromClient.right){
+                window.chatIconPosition.right = paramsFromClient.right;
+            }
+        } catch(err){
+            console.log('Error', err);
+        }
+        window.TCIframe.style.display = 'block';
+    }
+    // window.enableChatIcon();
+    function setFrameDimensions(frame){
+        if (window.isMobile()) {
+            loadMobileFrame(frame);
+        } else {
+            loadDesktopFrame(frame);
+        }
+    }
+    function loadDesktopFrame(frame){
+        frame = frame || window.TCIframe;
+        window.desktop = {
+            chatWindowHeight: '90%',
+            chatWindowWidth: '375px',
+            chatWindowRight: '20px',
+            chatWindowBottom: '20px',
+            paddingTop: '0rem',
+            webviewSize: 'full',
+            borderRadius: '10px 10px 0px 0px',
+            minWidth: '375px',
+            maxHeight: '642px',
+            minHeight: '5%',
+            boxShadow: 'rgba(0, 0, 0, 0.11) 0px 2px 39px 0px',
+            transition: 'height 0.3s ease 0s',
+        };
+        frame.style.transition = desktop.transition || 'none';
+        frame.style.height = desktop.chatWindowHeight;
+        frame.style.width = desktop.chatWindowWidth;
+        frame.style.bottom = desktop.chatWindowBottom || '20px';
+        frame.style.right = desktop.chatWindowRight || '20px';
+        frame.style.minHeight = desktop.minHeight || '5%';
+        frame.style.maxHeight = desktop.maxHeight || '642px';
+        frame.style.minWidth = desktop.minWidth || '375px';
+        frame.style.borderRadius = desktop.borderRadius || '6px';
+        frame.style.top = desktop.top || null;
+        frame.style.left = desktop.left || null;
+        frame.style.paddingTop = desktop.paddingTop || '1.5rem';
+        frame.style.boxShadow = desktop.boxShadow || 'none';
+    }
+    function loadMobileFrame(frame){
+        frame.style.height = '100%';
+        frame.style.transition = 'height 0.3s ease 0s';
+        frame.style.width = '100%';
+        frame.style.padding = '0';
+        frame.style.margin = '0';
+        frame.style.bottom = '0';
+        frame.style.right = '0';
+        frame.style.maxHeight = null;
+    }
+    function createTCIframe(clientHostName, initParams, iframeStyle) {
+        var TCIframe = document.createElement('iframe');
+        var apiKey;
+        try{
+            apiKey = document.URL.indexOf('apikey') !== -1 ? document.URL.split("/").slice(4, 5).join("/") : null;
+        } catch(err){
+            console.log(err);
+        }
+        if(apiKey){
+            TCIframe.src = "https://"+clientHostName+'/apikey/'+apiKey+"/morfeuswebsdk/TC.html";
+        } else {
+            TCIframe.src = "https://"+clientHostName+"/morfeuswebsdk/TC.html";
+        }
+        window.optionsFromClinet = initParams;
+        TCIframe.src += "?hostedDomain=" + initParams.hostedDomain;
+        TCIframe.allow = "geolocation; microphone; camera;";
+        TCIframe.id = "TCIframe";
+        TCIframe.name = "TCIframe";
+        TCIframe.allowTransparency = iframeStyle.transparency ? iframeStyle.transparency : "true";;
+        TCIframe.style.border = iframeStyle.border ? iframeStyle.border :  "0";
+        TCIframe.style.boxShadow = iframeStyle.boxShadow  ? iframeStyle.boxShadow : "0 4px 8px 0 #BABABA, 0 6px 20px 0 #888";
+        TCIframe.style.position = iframeStyle.position ? iframeStyle.position : "fixed";
+        TCIframe.style.display = iframeStyle.display ? iframeStyle.display :  "none";
+        TCIframe.style.zIndex =  iframeStyle.zIndex ? iframeStyle.zIndex : "9999";
+        TCIframe.scrolling = "no";
+        return TCIframe;
+    }
+    function hideTCParentFrame(){
+        var chatButtonStyle = {
+            "width": "100px",
+            "minWidth": "100px",
+            "height": "110px",
+            "minHeight": '105px',
+            "right": "20px",
+            "bottom": "20px",
+        }
+        if(window.chatIconPosition){
+            if(window.chatIconPosition.bottom){
+                chatButtonStyle.bottom = window.chatIconPosition.bottom;
+            }
+            if(window.chatIconPosition.right){
+                chatButtonStyle.right = window.chatIconPosition.right;
+            }
+        }
+        window.TCIframe.style.transition = 'none';
+        window.TCIframe.style.height = chatButtonStyle.height;
+        window.TCIframe.style.minHeight = chatButtonStyle.minHeight;
+        window.TCIframe.style.width = chatButtonStyle.width;
+        window.TCIframe.style.minWidth = chatButtonStyle.minWidth;
+        window.TCIframe.style.top = chatButtonStyle.top;
+        window.TCIframe.style.bottom = chatButtonStyle.bottom;
+        window.TCIframe.style.boxShadow = 'none';
+        if(isMobile()){
+            window.TCIframe.style.top = '';
+        }
+        if(window.TCChatbotLanguage === 'ar'){
+            window.TCIframe.style.right = '';
+            window.TCIframe.style.left = chatButtonStyle.right;
+        } else {
+            window.TCIframe.style.left = '';
+            window.TCIframe.style.right = chatButtonStyle.right;
+        }
+    }
+    function showTCParentFrame(){
+        if(isMobile()){
+            loadMobileFrame(window.TCIframe);
+        } else {
+            loadDesktopFrame(window.TCIframe);
+        }
+    }
+    function closeTCParentFrame(reInitialize){
+        if(window.TCIframe.remove){
+            window.TCIframe.remove();
+        } else {
+            window.TCIframe.parentNode.removeChild(window.TCIframe);
+        }
+        // window.enableChatIcon();
+        if(reInitialize){
+            window.initWebChatSDK();
+        }
+    }
+    function changeToMinimizeState(){
+        // 120
+        window.TCIframe.style.height = "120px";
+        window.TCIframe.style.minHeight = "110px";
+        if(isMobile()){
+            window.TCIframe.style.top = '';
+            if(window.TCChatbotLanguage !== 'ar'){
+                window.TCIframe.style.left = '';
+                window.TCIframe.style.right = '0';
+            } else {
+                window.TCIframe.style.left = '0';
+                window.TCIframe.style.right = '';
+            }
+            window.TCIframe.style.width = '75%';
+            window.TCIframe.style.borderRadius = '6px';
+        }
+    }
+    window.addEventListener("message", receiveChatbotMessage, false);
+    function receiveChatbotMessage(event){
+        var eventData = event.data || { "type": "" };
+        if(event.origin == 'https://'+clientHostName){
+            if(eventData.type){
+                switch(eventData.type){
+                    case 'hideTCFrame':
+                        hideTCParentFrame();
+                        break;
+                    case 'showTCFrame':
+                        showTCParentFrame();
+                        break;
+                    case 'closeTCParentFrame':
+                        closeTCParentFrame(eventData.reInitialize);
+                        break;
+                    case 'chatbotIsActive':
+                        if(window.chatBotIsActive){
+                            window.chatBotIsActive();
+                        }
+                        break;
+                    case 'showTCIcon':
+                        if(getParameterByName('initialize') === "true"){
+                            window.enableTCbot();
+                        } else {
+                            window.enableChatIcon();
+                        }
+                        break;
+                    case 'showMinimiseBot':
+                        changeToMinimizeState();
+                        break;
+                    case 'getParamsFromClinet':
+                        var data = {
+                            type: "sendOptionsToBot",
+                            optionsFromParent: window.optionsFromClinet
+                        }
+                        window.sendMessageToTCFrame(data);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+    window.closeTCChatbox = function(reInitialize){
+        var initializeAgain = reInitialize === false ? false : true;
+        var data = {
+            type: "closeTCFrame",
+            reInitialize: initializeAgain
+        }
+        window.sendMessageToTCFrame(data);
+    }
+    window.sendMessageToTCFrame = function(data){
+        if(window.TCIframe.contentWindow){
+            window.TCIframe.contentWindow.postMessage(data, 'https://'+clientHostName);
+        }
+    }
+  })(window)
+  
+  
+  
+  // (function(window){
+    
+  // })(window)
+  
+  
