@@ -4159,7 +4159,7 @@ to{-webkit-transform:scale3d(1,1,1);transform:scale3d(1,1,1)}
 .icon-angle-down:before{content:"\f107";font-family:"Font-Icons"}
 .customerSpeak-Section .rating li i{margin:0}
 }
-@font-face{font-family:'icomoon';src:url('../../main/resources/assets/fonts/icomoon/icomoon.eot?xhx9r6');src:url('../../main/resources/assets/fonts/icomoon/icomoon.eot?xhx9r6#iefix') format('embedded-opentype'),url('../../main/resources/assets/fonts/icomoon/icomoon.ttf?xhx9r6') format('truetype'),url('../../main/resources/assets/fonts/icomoon/icomoon.woff?xhx9r6') format('woff'),url('../../main/resources/assets/fonts/icomoon/icomoon.svg?xhx9r6#icomoon') format('svg');font-weight:normal;font-style:normal;font-display:swap}
+@font-face{font-family:'icomoon';src:url('./Personal Loan - Get Instant Personal Loan Online with Tata Capital_files/font/icomoon-1.eot');src:url('./Personal Loan - Get Instant Personal Loan Online with Tata Capital_files/font/icomoon-1.eot') format('embedded-opentype'),url('') format('truetype'),url('') format('woff'),url('') format('svg');font-weight:normal;font-style:normal;font-display:swap}
 [class^="icon-"],[class*=" icon-"]{font-family:'icomoon' !important;speak:none;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .icon-map-new:before{content:"\e98e"}
 .icon-call-new:before{content:"\e98d"}
